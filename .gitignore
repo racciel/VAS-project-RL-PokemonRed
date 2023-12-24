@@ -1,2 +1,5 @@
 *.gb
 *.ram
+test.py
+Wall of text.txt
+__pycache__

@@ -28,6 +28,12 @@ def party_lvl(pb):
     return s
 
 def use_move(pb):
+    """
+    Well... The idea was to select a damaging move which has enough PP to be used.
+    I wanted to put a heuristic rule for an agent to switch when there is no more
+    damaging moves available on an active pokemon.
+    """
+
     power = pb.get_memory_value(selected_move_power)
     #pp = 
 
