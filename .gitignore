@@ -2,5 +2,5 @@
 sandbox.py
 *.ram
 test.py
-wall of text.txt
+wall_of_text.txt
 __pycache__/
