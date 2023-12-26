@@ -8,3 +8,30 @@
 #print(f"Type of battle: {pyboy.get_memory_value(0xD057)}") # OVO RADI!
 #print(f"Tileset type: {pyboy.get_memory_value(0xB522)}")
 #print(f"Enemy pokemon intermal ID: {pyboy.get_memory_value(0xCFD8)}")
+
+
+
+
+
+#def navigate(self, pb, direction = None):
+    #    if direction == None:
+    #        random.choice(list(self.current_actions[0:1]))
+    #    else:
+    #        self.step(pb, direction)
+
+    #def select_battle_menu(self, pb, desired_menu):
+    #    current_menu = menu_option(pb)
+    #    desired_val = self.menus[desired_menu]
+    #    if current_menu != desired_val:
+    #       self.navigate(pb)
+    #    else:
+    #        self.step(pb, "SelectAction")
+
+    #def select_attack(self, pb, desired_attack):
+    #    # Odaberi željeni napad
+    #    current_attack = self.get_selected_attack()
+    #
+    #    if current_attack != desired_attack:
+    #        self.step(pb, "MoveDOWN")
+    #    else:
+    #        self.step(pb, "SelectAction")

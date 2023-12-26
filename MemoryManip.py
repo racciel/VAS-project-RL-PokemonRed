@@ -9,6 +9,35 @@ D167 - Pokémon 4
 D168 - Pokémon 5
 D169 - Pokémon 6
 D16A - End of list
+
+Prvi pokemon:
+D173 - Move 1
+D174 - Move 2
+D175 - Move 3
+D176 - Move 4
+
+
+
+
+Pokemon1
+D188 - PP Move 1
+D189 - PP Move 2
+D18A - PP Move 3
+D18B - PP Move 4
+
+CCDC - Player selected move
+
+
+Meniji (value) iz menu_option(pb):
+Fight - 193
+PkMn - 199
+Item - 233
+Run - 239
+
+Prvi napad - 169
+Drgi napad - 189
+Treci napad - 209
+Cetvrti napad - 229
 """
 
 #           1        2       3       4       5       6      
@@ -46,3 +75,50 @@ def num_moves(pb):
         if(pb.get_memory_value(m)>0):
             n+=1
     return n
+
+def menu_option(pb):
+    """
+
+    """
+    return f"{pb.get_memory_value(0xCC30)}"
+
+def use_move(pb, move_pool=None):
+    return f"{pb.get_memory_value(0xD173)}"
+
+
+def selected_move_power(pb):
+    """
+
+    """
+    pokemon_types = [pb.get_memory_value(0xD019),pb.get_memory_value(0xD01A)]
+    move_type = pb.get_memory_value(0xCFD5) ## 0 is normal btw
+    move_power = pb.get_memory_value(0xCFD4)
+    if move_type in pokemon_types:
+        return move_power*1.5
+    return move_power
+
+def goal(pb):
+    return pb.get_memory_value(0xD755) == 196 # mora biti 196 za pobjedu
+    ...
+    
+def pos(pb):
+    
+    ...
+    
+def seen_pokes(pb):
+    return [pb.bit_count(pb.read_m(i)) for i in range(0xD30A, 0xD31D)]
+
+def n_pokemon(pb):
+    return pb.get_memory_value(0xD163)
+
+def get_money(pb):
+    money_byte1 = pb.get_memory_value(0xD347)
+    money_byte2 = pb.get_memory_value(0xD348)
+    money_byte3 = pb.get_memory_value(0xD349)
+
+    full_money = money_byte1 + (money_byte2 << 8) + (money_byte3 << 16)
+
+    return full_money
+
+def total_items(pb):
+    return pb.get_memory_value(0xD31D)
