@@ -43,7 +43,7 @@ class PokemonAgent:
         party_lvl_change = max(party_lvl(pb) - self.old_party_lvl, 0)
         badges_change = max(get_badges(pb) - self.old_badges, 0)
         died_change = max(get_died(pb) - self.old_died, 0)
-        expl_change = max(self.update_map(pb), 0) ## TODO
+        expl_change = max(self.update_map(pb), 0)
         self.old_party_lvl = party_lvl(pb)
         self.old_items_count = total_items(pb)
         self.old_money = get_money(pb)
@@ -52,9 +52,9 @@ class PokemonAgent:
         
         state_scores = {
             'level': party_lvl_change * 0.3, # It works!
-            'heal': self.healing(pb)* 0.15, # testing
+            'heal': self.healing(pb)* 0.15, # It works!
             'items': items_change * 0.15, # It works!
-            'dead': -0.01*died_change, # WIP
+            'dead': -0.01*died_change, # It works!
             'money': money_change * 0.03, # It works!
             'explore': expl_change*0.02, # It works!
             'badge': badges_change * 0.5 # It works!
@@ -196,7 +196,7 @@ class PokemonAgent:
                     if rest == 0:
                         action = self.choose_action(state)
                         btns = self.current_actions[action]
-                        #self.step(pyb, btns[0])
+                        self.step(pyb, btns[0])
                         
                         next_state = self.get_state(pyb)
                         
@@ -209,7 +209,7 @@ class PokemonAgent:
                         
                         rest = base_tick_speed
                     elif rest == base_tick_speed/2:
-                        #self.step(pyb, btns[1])
+                        self.step(pyb, btns[1])
                         ...
                     if goal(pyb):
                         # Tu ću zapisati najbolju q tablicu za ovu generaciju pa ću je koristiti poslije kao početnu

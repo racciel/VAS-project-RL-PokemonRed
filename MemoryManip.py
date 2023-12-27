@@ -147,8 +147,12 @@ def get_x_y(pb):
     return place, x, y
 
 def get_died(pb):
-    # TODO
-    return 0
+    hps = hp_read(pb)
+    dead = True
+    for h in hps:
+        if h[0] > 0 :
+            dead = False    
+    return dead
 
 def hp_read(pb):
     hp_values = []
