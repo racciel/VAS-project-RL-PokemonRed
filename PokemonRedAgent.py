@@ -4,14 +4,14 @@ from MemoryManip import *
 import pickle
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
+import io
 
 class PokemonAgent:
     def __init__(self, learning_rate=0.1, discount_factor=0.9, exploration_rate=1.0, exploration_decay=0.995, base_q_values = None):
         self.current_state = None
         self.num_pokemon = None
         self.num_attacks = None
-        self.old_items_count = 0
-        self.died = 0
+        
         self.general_actions = {"MoveUP": [WindowEvent.PRESS_ARROW_UP, WindowEvent.RELEASE_ARROW_UP], 
                                 "MoveDOWN": [WindowEvent.PRESS_ARROW_DOWN, WindowEvent.RELEASE_ARROW_DOWN], 
                                 "MoveLEFT": [WindowEvent.PRESS_ARROW_LEFT, WindowEvent.RELEASE_ARROW_LEFT], 
@@ -37,21 +37,25 @@ class PokemonAgent:
             self.q_values = {("000000", action): 0.0 for action in self.general_actions}
             
     def get_reward(self, pb):
-        seen_poke_count = sum(seen_pokes(pb))
+        #seen_poke_count = sum(seen_pokes(pb))
         money_change = max(get_money(pb) - self.old_money, 0)
         items_change = max(total_items(pb) - self.old_items_count, 0)
+        party_lvl_change = max(party_lvl(pb) - self.old_party_lvl, 0)
+        self.old_party_lvl = party_lvl(pb)
         self.old_items_count = total_items(pb)
         self.old_money = get_money(pb)
         
         state_scores = {
-            'level': party_lvl(pb),
+            'level': party_lvl_change * 0.3,
+            
             #'heal': self.total_healing_rew,
-            'items': items_change * 1.5,
-            'dead': -0.1*self.died,
-            'money': money_change * 3,
-            'seen_poke':  seen_poke_count * 4,
+            
+            'items': items_change * 0.15,
+            'dead': -0.01*self.died,
+            'money': money_change * 0.03,
+            #'seen_poke':  seen_poke_count * 4,
             #'explore': self.get_knn_reward(),
-            'badge': get_badges(pb) * 5
+            'badge': get_badges(pb) * 0.5
         }
         
         return state_scores
@@ -66,7 +70,8 @@ class PokemonAgent:
         if np.random.rand() < self.exploration_rate:
             return np.random.choice(self.get_actions())
         else:
-            return max(self.q_values.get((state, action), 0) for action in self.get_actions())
+            best_action = max(self.get_actions(), key=lambda action: self.q_values.get((state, action), 0))
+        return best_action
 
     def update_q_values(self, state, action, reward, next_state):
         # Funkcija koja ažurira Q-vrijednosti prema Q-learning algoritmu
@@ -126,13 +131,27 @@ class PokemonAgent:
         generation = []
         for e in range(n_ep):
             with PyBoy('./PokemonRed.gb') as pyb:
+                
+                file_like_object = open("./PokemonRedSaveState.state", "rb")
+                #print(file_like_object)
+                pyb.load_state(file_like_object)
+                
                 total_reward = 0
                 state = self.get_state(pyb)
                 self.old_money = get_money(pyb)
+                self.old_party_lvl = party_lvl(pyb)
+                self.old_items_count = total_items(pyb)
+                self.died = get_died(pyb)
                 base_tick_speed = 20
                 rest = base_tick_speed
                 btns = [1,1]   ## NULA GASI EMULATOR!!!! ZAPAMTI! 
                 while not pyb.tick():
+                    
+                    # USED ONCE TO SAVESTATE
+                    #if(pyb.get_input() == [WindowEvent.PRESS_BUTTON_SELECT]):
+                    #    file_like_object = open("./PokemonRedSaveState.state", "wb")
+                    #    pyb.save_state(file_like_object)
+                    
                     num_pokemon = pyb.get_memory_value(0xD163)
                     num_attacks = num_moves(pyb)
                     self.set_num_pokemon(num_pokemon)
@@ -161,13 +180,9 @@ class PokemonAgent:
                     #print(f"Sta god da je ovo: {get_x_y(pyb)}")
                     rest-=1
                     if rest == 0:
-                        #max_q_value = max(self.q_values.values())
-                        #best_actions = [action for action, q_value in self.q_values.items() if q_value == max_q_value]
-                        #chosen_action = random.choice(best_actions)  # Nasumično odaberi između jednako dobrih akcija
-                        #btns = self.current_actions[chosen_action[1]]
                         action = self.choose_action(state)
                         btns = self.current_actions[action]
-                        self.step(pyb, btns[0])
+                        #self.step(pyb, btns[0])
                         
                         next_state = self.get_state(pyb)
                         reward = self.get_reward(pyb)
@@ -179,7 +194,7 @@ class PokemonAgent:
                         
                         rest = base_tick_speed
                     elif rest == base_tick_speed/2:
-                        self.step(pyb, btns[1])
+                        #self.step(pyb, btns[1])
                         ...
                     if goal(pyb):
                         # Tu ću zapisati najbolju q tablicu za ovu generaciju pa ću je koristiti poslije kao početnu

@@ -145,3 +145,6 @@ def get_x_y(pb):
     y = pb.get_memory_value(0xD362)
     
     return place, x, y
+
+def get_died(pb):
+    return 0
