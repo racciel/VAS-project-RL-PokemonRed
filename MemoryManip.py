@@ -147,4 +147,23 @@ def get_x_y(pb):
     return place, x, y
 
 def get_died(pb):
+    # TODO
     return 0
+
+def hp_read(pb):
+    hp_values = []
+    for i in range(6):
+        current_hp_address_high = 0xD16C + (i * 0x2D-1*i if i!=0 else 0)
+        current_hp_address_low = 0xD16C + (i * 0x2D-1*i if i!=0 else 0)+0x1
+        max_hp_address_high = 0xD18D + (i * 0x2D-1*i if i!=0 else 0)
+        max_hp_address_low = 0xD18D + (i * 0x2D-1*i if i!=0 else 0)+0x1
+        current_hp_low = pb.get_memory_value(current_hp_address_low)
+        current_hp_high = pb.get_memory_value(current_hp_address_high)
+        current = int((current_hp_high>>4)+current_hp_low)
+        max_hp_low = pb.get_memory_value(max_hp_address_low)
+        max_hp_high = pb.get_memory_value(max_hp_address_high)
+        max_ = int((max_hp_high>>4)+max_hp_low)
+        hp_values.append((current, max_))
+        print((current, max_))
+
+    return hp_values

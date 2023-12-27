@@ -28,41 +28,61 @@ class PokemonAgent:
         self.discount_factor = discount_factor  # faktor diskontiranja
         self.exploration_rate = exploration_rate  # stopa istraživanja
         self.exploration_decay = exploration_decay  # faktor smanjenja istraživanja
-
         
+        self.previous_health = None
         
         if base_q_values is not None:
-            self.q_values = base_q_values.get_q_values().copy()
+            self.q_values = base_q_values.copy()
         else:
-            self.q_values = {("000000", action): 0.0 for action in self.general_actions}
+            self.q_values = {}
             
     def get_reward(self, pb):
         #seen_poke_count = sum(seen_pokes(pb))
         money_change = max(get_money(pb) - self.old_money, 0)
         items_change = max(total_items(pb) - self.old_items_count, 0)
         party_lvl_change = max(party_lvl(pb) - self.old_party_lvl, 0)
+        badges_change = max(get_badges(pb) - self.old_badges, 0)
+        died_change = max(get_died(pb) - self.old_died, 0)
+        expl_change = max(self.update_map(pb), 0) ## TODO
         self.old_party_lvl = party_lvl(pb)
         self.old_items_count = total_items(pb)
         self.old_money = get_money(pb)
+        self.old_badges = get_badges(pb)
+        self.old_died = get_died(pb)
         
         state_scores = {
-            'level': party_lvl_change * 0.3,
-            
-            #'heal': self.total_healing_rew,
-            
-            'items': items_change * 0.15,
-            'dead': -0.01*self.died,
-            'money': money_change * 0.03,
-            #'seen_poke':  seen_poke_count * 4,
-            #'explore': self.get_knn_reward(),
-            'badge': get_badges(pb) * 0.5
+            'level': party_lvl_change * 0.3, # It works!
+            'heal': self.healing(pb)* 0.15, # testing
+            'items': items_change * 0.15, # It works!
+            'dead': -0.01*died_change, # WIP
+            'money': money_change * 0.03, # It works!
+            'explore': expl_change*0.02, # It works!
+            'badge': badges_change * 0.5 # It works!
         }
         
         return state_scores
     
+    def healing(self, pb):
+        current_health = hp_read(pb)
+        print(f"Current Health: {current_health}")
+        print(f"Previous Health: {self.previous_health}")
+        if self.previous_health is not None:
+            relevant_health = [current for i, current in enumerate(current_health) if i in range(self.num_pokemon)]
+            relevant_previous_health = [previous for i, previous in enumerate(self.previous_health) if i in range(self.num_pokemon)]
+            
+
+            healing_occurred = any(current > previous for current, previous in zip(relevant_health, relevant_previous_health))
+            if healing_occurred:
+                self.previous_health = current_health
+                return healing_occurred
+            
+        self.previous_health = current_health
+        return 0.0
+    
+    def get_explored(self):
+        return self.q_values
+    
     def get_state(self, pb):
-        # Funkcija koja stvara reprezentaciju trenutnog stanja
-        # Ovdje možete koristiti podatke kao što su broj pokemona, novac, leveli, koordinate itd.
         p, x, y = get_x_y(pb)
         return (p, x, y, self.num_pokemon, get_money(pb), party_lvl(pb), total_items(pb), get_badges(pb))
 
@@ -72,34 +92,25 @@ class PokemonAgent:
         else:
             best_action = max(self.get_actions(), key=lambda action: self.q_values.get((state, action), 0))
         return best_action
-
+    
+    def update_map(self, pb):
+        current = get_x_y(pb)
+        if current in self.old_explored:
+            return 0
+        else:
+            self.old_explored.append(current)
+            return 1
+    
     def update_q_values(self, state, action, reward, next_state):
-        # Funkcija koja ažurira Q-vrijednosti prema Q-learning algoritmu
-        current_q = self.q_values.get((state, action), 0)
-        max_future_q = max(self.q_values.get((next_state, a), 0) for a in self.get_actions())
-        print(self.learning_rate, current_q, self.learning_rate, sum(reward[k] for k, _ in reward.items()), self.discount_factor, max_future_q)
-        new_q = (1 - self.learning_rate) * current_q + self.learning_rate * (float(sum(reward[k] for k, _ in reward.items())) + self.discount_factor * max_future_q)
-        self.q_values[(state, action)] = new_q
-        
-        """# Funkcija koja ažurira Q-vrijednosti prema Q-learning algoritmu
-        current_q = self.q_values.get((state, action), 0)
-        
-        # Provjerite što vraća metoda get_actions(), a zatim popravite sljedeću liniju prema potrebi
-        max_future_q = max(self.q_values.get((next_state, a), 0) for a in self.get_actions())
+        if state not in self.q_values:
+            self.q_values[state] = {}
 
-        print(self.learning_rate, current_q, self.learning_rate, reward, self.discount_factor, max_future_q)
-        
-        new_q = (1 - self.learning_rate) * current_q + self.learning_rate * (reward + self.discount_factor * max_future_q)
-        self.q_values[(state, action)] = new_q"""
-    
-    
-    def get_knn_reward(self):
-        pre_rew = self.explore_weight * 0.005
-        post_rew = self.explore_weight * 0.01
-        cur_size = self.knn_index.get_current_count()
-        base = (self.base_explore if self.levels_satisfied else cur_size) * pre_rew
-        post = (cur_size if self.levels_satisfied else 0) * post_rew
-        return base + post
+        current_q = self.q_values[state].get(action, 0)
+        max_future_q = max(self.q_values.get(next_state, {}).get(a, 0) for a in self.get_actions())
+
+        new_q = (1 - self.learning_rate) * current_q + self.learning_rate * (
+                float(sum(reward[k] for k, _ in reward.items())) + self.discount_factor * max_future_q)
+        self.q_values[state][action] = new_q
     
     def save_model(self, file_path):
         with open(file_path, 'wb') as file:
@@ -141,10 +152,16 @@ class PokemonAgent:
                 self.old_money = get_money(pyb)
                 self.old_party_lvl = party_lvl(pyb)
                 self.old_items_count = total_items(pyb)
-                self.died = get_died(pyb)
+                self.old_died = get_died(pyb)
+                self.old_badges = get_badges(pyb)
+                self.old_explored = []
+                
+                #self.explored = get_location_from_state(pyb)
+                
                 base_tick_speed = 20
                 rest = base_tick_speed
                 btns = [1,1]   ## NULA GASI EMULATOR!!!! ZAPAMTI! 
+                
                 while not pyb.tick():
                     
                     # USED ONCE TO SAVESTATE
@@ -157,27 +174,24 @@ class PokemonAgent:
                     self.set_num_pokemon(num_pokemon)
                     self.set_num_attacks(num_attacks)
                     mode = pyb.get_memory_value(0xD057) # overworld = 0, in battle = anything else
-                    print(f"Epizoda: {e}")
-                    print(f"Suma levela pokemona u party-ju: {party_lvl(pyb)}")
+                    #print(f"Suma levela pokemona u party-ju: {party_lvl(pyb)}")
                     
-                    print(f"Broj pokemona: {self.num_pokemon}")
-                    print(f"Broj napada: {self.num_attacks}")
+                    #print(f"Broj pokemona: {self.num_pokemon}")
+                    #print(f"Broj napada: {self.num_attacks}")
                     print(f"Input(s): {pyb.get_input()}")
                     
                     if mode > 0:
                         self.set_battle_actions()
-                        print("Moguće akcije u borbi:", self.get_actions())
+                        #print("Moguće akcije u borbi:", self.get_actions())
                     else:
                         self.set_overworld_actions()
-                        print("Moguće akcije u overworldu:", self.get_actions()) 
+                        #print("Moguće akcije u overworldu:", self.get_actions()) 
                         
-                    print("Odabrani meni:", menu_option(pyb))
-                    print("Moc odabranog napada:", selected_move_power(pyb))
-                    print("Badges: ", get_badges(pyb))
-                    print("Total items: ", total_items(pyb))
-                    print("Money: ", get_money(pyb))
                     print(f"Episode {e + 1}, Total Reward: {total_reward}")
                     #print(f"Sta god da je ovo: {get_x_y(pyb)}")
+                    #print(self.q_values)
+                    
+                    
                     rest-=1
                     if rest == 0:
                         action = self.choose_action(state)
@@ -185,8 +199,9 @@ class PokemonAgent:
                         #self.step(pyb, btns[0])
                         
                         next_state = self.get_state(pyb)
-                        reward = self.get_reward(pyb)
                         
+                        #print(f"{self.get_explored()}")
+                        reward = self.get_reward(pyb)
                         self.update_q_values(state, action, reward, next_state)
                         
                         total_reward += sum(r for _, r in reward.items())
@@ -200,4 +215,3 @@ class PokemonAgent:
                         # Tu ću zapisati najbolju q tablicu za ovu generaciju pa ću je koristiti poslije kao početnu
                         pyb.stop()
         self.save_model(generation)
-        
