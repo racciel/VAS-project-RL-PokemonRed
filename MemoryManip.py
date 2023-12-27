@@ -106,7 +106,7 @@ def pos(pb):
     ...
     
 def seen_pokes(pb):
-    return [pb.bit_count(pb.read_m(i)) for i in range(0xD30A, 0xD31D)]
+    return [bin(pb.get_memory_value(i)).count('1') for i in range(0xD30A, 0xD31D)]
 
 def n_pokemon(pb):
     return pb.get_memory_value(0xD163)
@@ -116,9 +116,32 @@ def get_money(pb):
     money_byte2 = pb.get_memory_value(0xD348)
     money_byte3 = pb.get_memory_value(0xD349)
 
-    full_money = money_byte1 + (money_byte2 << 8) + (money_byte3 << 16)
-
+    # Ukupna vrijednost novca
+    full_money = int(f"{money_byte1 >> 4}{money_byte1 & 0xF}{money_byte2>>4}{money_byte2 & 0xF}{money_byte3>>4}{money_byte3 & 0xF}") ## THANKS GAMEFREAK
+    ## https://www.youtube.com/watch?v=RhT2M35tQlc Same energy
     return full_money
+    
 
 def total_items(pb):
     return pb.get_memory_value(0xD31D)
+
+def get_badges(pb):
+    return pb.get_memory_value(0xD356)
+
+
+
+    """
+    D35E = Current Map Number
+
+    D361 - 1 byte integer = Current Player Y-Position
+    D362 - 1 byte integer = Current Player X-Position
+    D363 = Current Player Y-Position (Current Block)
+    D364 = Current Player X-Position (Current Block)
+    """
+
+def get_x_y(pb):
+    place = pb.get_memory_value(0xD35E)
+    x = pb.get_memory_value(0xD361)
+    y = pb.get_memory_value(0xD362)
+    
+    return place, x, y

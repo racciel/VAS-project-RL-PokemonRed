@@ -9,4 +9,4 @@ from colorama import Fore
 #rest = base_tick_speed
 
 ash = PokemonAgent()
-ash.train(10)    
+ash.train(10)
