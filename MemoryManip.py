@@ -120,7 +120,9 @@ def get_money(pb):
     full_money = int(f"{money_byte1 >> 4}{money_byte1 & 0xF}{money_byte2>>4}{money_byte2 & 0xF}{money_byte3>>4}{money_byte3 & 0xF}") ## THANKS GAMEFREAK
     ## https://www.youtube.com/watch?v=RhT2M35tQlc Same energy
     return full_money
-    
+
+def get_mode(pb):
+    return pb.get_memory_value(0xD057)    
 
 def total_items(pb):
     return pb.get_memory_value(0xD31D)
@@ -128,7 +130,8 @@ def total_items(pb):
 def get_badges(pb):
     return pb.get_memory_value(0xD356)
 
-
+def num_pokemons(pb):
+    return pb.get_memory_value(0xD163)
 
     """
     D35E = Current Map Number
@@ -168,6 +171,33 @@ def hp_read(pb):
         max_hp_high = pb.get_memory_value(max_hp_address_high)
         max_ = int((max_hp_high>>4)+max_hp_low)
         hp_values.append((current, max_))
-        print((current, max_))
 
     return hp_values
+
+# player_pokemon_id, player_pokemon_level, player_pokemon_hp, enemy_pokemon_id, enemy_pokemon_level, enemy_pokemon_hp, battle_type, current_menu
+def get_battle_state(pb):
+    p_p_id = pb.get_memory_value(0xCFD9)
+    p_p_level = pb.get_memory_value(0xD022)
+    
+    add_high = 0xD015
+    add_low = 0xD016
+    
+    current_hp_high = pb.get_memory_value(add_high)
+    current_hp_low = pb.get_memory_value(add_low)
+    p_p_h = int((current_hp_high>>4)+current_hp_low)
+    
+    e_p_id = pb.get_memory_value(0xCFD8)
+    e_p_lvl = pb.get_memory_value(0xCFF3)
+    
+    add_high = 0xCFE6
+    add_low = 0xCFE7
+    
+    current_hp_high = pb.get_memory_value(add_high)
+    current_hp_low = pb.get_memory_value(add_low)
+    e_p_h = int((current_hp_high>>4)+current_hp_low)
+    
+    battle_type = get_mode(pb)
+    current_menu = int(menu_option(pb))
+    
+    return (p_p_id, p_p_level, p_p_h, e_p_id, e_p_h, e_p_lvl, battle_type, current_menu)
+    ...

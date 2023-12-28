@@ -3,11 +3,9 @@ from pyboy import PyBoy, WindowEvent
 from MemoryManip import *
 import pickle
 import numpy as np
-from sklearn.neighbors import KNeighborsRegressor
-import io
 
 class PokemonAgent:
-    def __init__(self, learning_rate=0.1, discount_factor=0.9, exploration_rate=1.0, exploration_decay=0.995, base_q_values = None):
+    def __init__(self, learning_rate=0.5, discount_factor=0.9, exploration_rate=1.0, exploration_decay=0.995, decay_factor = 0.995, base_q_values = None):
         self.current_state = None
         self.num_pokemon = None
         self.num_attacks = None
@@ -28,11 +26,13 @@ class PokemonAgent:
         self.discount_factor = discount_factor  # faktor diskontiranja
         self.exploration_rate = exploration_rate  # stopa istraživanja
         self.exploration_decay = exploration_decay  # faktor smanjenja istraživanja
+        self.decay_factor = decay_factor
         
         self.previous_health = None
         
         if base_q_values is not None:
-            self.q_values = base_q_values.copy()
+            self.load_model(base_q_values)
+            self.learning_rate=0.1
         else:
             self.q_values = {}
             
@@ -43,7 +43,10 @@ class PokemonAgent:
         party_lvl_change = max(party_lvl(pb) - self.old_party_lvl, 0)
         badges_change = max(get_badges(pb) - self.old_badges, 0)
         died_change = max(get_died(pb) - self.old_died, 0)
-        expl_change = max(self.update_map(pb), 0)
+        if get_mode(pb) == 0:
+            expl_change = max(self.update_map(pb), 0)
+        else:
+            expl_change = 0
         self.old_party_lvl = party_lvl(pb)
         self.old_items_count = total_items(pb)
         self.old_money = get_money(pb)
@@ -51,12 +54,12 @@ class PokemonAgent:
         self.old_died = get_died(pb)
         
         state_scores = {
-            'level': party_lvl_change * 0.3, # It works!
-            'heal': self.healing(pb)* 0.15, # It works!
-            'items': items_change * 0.15, # It works!
-            'dead': -0.01*died_change, # It works!
-            'money': money_change * 0.03, # It works!
-            'explore': expl_change*0.02, # It works!
+            'level': party_lvl_change * 0.35, # It works!
+            'heal': self.healing(pb) * 0.02, # It works!
+            'items': items_change * 0.03, # It works!
+            'dead': died_change * -0.01, # It works!
+            'money': money_change * 0.003, # It works!
+            'explore': expl_change * 0.05, # It works!
             'badge': badges_change * 0.5 # It works!
         }
         
@@ -64,13 +67,12 @@ class PokemonAgent:
     
     def healing(self, pb):
         current_health = hp_read(pb)
-        print(f"Current Health: {current_health}")
-        print(f"Previous Health: {self.previous_health}")
+        #print(f"Current Health: {current_health}")
+        #print(f"Previous Health: {self.previous_health}")
         if self.previous_health is not None:
             relevant_health = [current for i, current in enumerate(current_health) if i in range(self.num_pokemon)]
             relevant_previous_health = [previous for i, previous in enumerate(self.previous_health) if i in range(self.num_pokemon)]
             
-
             healing_occurred = any(current > previous for current, previous in zip(relevant_health, relevant_previous_health))
             if healing_occurred:
                 self.previous_health = current_health
@@ -82,9 +84,12 @@ class PokemonAgent:
     def get_explored(self):
         return self.q_values
     
-    def get_state(self, pb):
-        p, x, y = get_x_y(pb)
-        return (p, x, y, self.num_pokemon, get_money(pb), party_lvl(pb), total_items(pb), get_badges(pb))
+    def get_state(self, pb):           
+        if get_mode(pb):
+            return get_battle_state(pb)
+        else:
+            p, x, y = get_x_y(pb)
+            return (p, x, y, self.num_pokemon, get_money(pb), party_lvl(pb), total_items(pb), get_badges(pb))
 
     def choose_action(self, state):
         if np.random.rand() < self.exploration_rate:
@@ -112,9 +117,10 @@ class PokemonAgent:
                 float(sum(reward[k] for k, _ in reward.items())) + self.discount_factor * max_future_q)
         self.q_values[state][action] = new_q
     
-    def save_model(self, file_path):
+    def save_model(self, file_path, total):
+        final = f"{self.q_values}\n((Total), {total})"
         with open(file_path, 'wb') as file:
-            pickle.dump(self.q_values, file)
+            pickle.dump(final, file)
 
     def load_model(self, file_path):
         with open(file_path, 'rb') as file:
@@ -144,8 +150,9 @@ class PokemonAgent:
             with PyBoy('./PokemonRed.gb') as pyb:
                 
                 file_like_object = open("./PokemonRedSaveState.state", "rb")
-                #print(file_like_object)
+                
                 pyb.load_state(file_like_object)
+                pyb.set_emulation_speed(0)
                 
                 total_reward = 0
                 state = self.get_state(pyb)
@@ -158,7 +165,7 @@ class PokemonAgent:
                 
                 #self.explored = get_location_from_state(pyb)
                 
-                base_tick_speed = 20
+                base_tick_speed = 24
                 rest = base_tick_speed
                 btns = [1,1]   ## NULA GASI EMULATOR!!!! ZAPAMTI! 
                 
@@ -169,16 +176,13 @@ class PokemonAgent:
                     #    file_like_object = open("./PokemonRedSaveState.state", "wb")
                     #    pyb.save_state(file_like_object)
                     
-                    num_pokemon = pyb.get_memory_value(0xD163)
+                    num_pokemon = num_pokemons(pyb)
                     num_attacks = num_moves(pyb)
                     self.set_num_pokemon(num_pokemon)
                     self.set_num_attacks(num_attacks)
-                    mode = pyb.get_memory_value(0xD057) # overworld = 0, in battle = anything else
-                    #print(f"Suma levela pokemona u party-ju: {party_lvl(pyb)}")
-                    
-                    #print(f"Broj pokemona: {self.num_pokemon}")
-                    #print(f"Broj napada: {self.num_attacks}")
-                    print(f"Input(s): {pyb.get_input()}")
+                    mode = get_mode(pyb) # overworld = 0, in battle = anything else
+
+                    #print(f"Input(s): {pyb.get_input()}")
                     
                     if mode > 0:
                         self.set_battle_actions()
@@ -187,8 +191,7 @@ class PokemonAgent:
                         self.set_overworld_actions()
                         #print("Moguće akcije u overworldu:", self.get_actions()) 
                         
-                    print(f"Episode {e + 1}, Total Reward: {total_reward}")
-                    #print(f"Sta god da je ovo: {get_x_y(pyb)}")
+                    print(f"Episode {e + 1}, Total Reward: {total_reward:0,.4f}")
                     #print(self.q_values)
                     
                     
@@ -197,7 +200,6 @@ class PokemonAgent:
                         action = self.choose_action(state)
                         btns = self.current_actions[action]
                         self.step(pyb, btns[0])
-                        
                         next_state = self.get_state(pyb)
                         
                         #print(f"{self.get_explored()}")
@@ -213,5 +215,7 @@ class PokemonAgent:
                         ...
                     if goal(pyb):
                         # Tu ću zapisati najbolju q tablicu za ovu generaciju pa ću je koristiti poslije kao početnu
+                        self.save_model("./PokemonRedQValues", total_reward)
+                        self.learning_rate *= self.decay_factor
                         pyb.stop()
         self.save_model(generation)
