@@ -42,7 +42,7 @@ class PokemonAgent:
         
         if base_q_values is not None and self.raw == False:
             self.load_model(base_q_values)
-            self.learning_rate=0.2
+            self.learning_rate=0.1
         else:
             self.q_values = {}
             self.raw = False
@@ -69,17 +69,17 @@ class PokemonAgent:
         
         
         if party_lvl_change > 1:
-            party_modif = 0.001   
+            party_modif = 0.001 * 2/self.num_pokemon
         else:
-            party_modif = 0.1
+            party_modif = 0.1 * 15/party_lvl(pb)
         expl_mod = explore_mod(pb)
         
         state_scores = {
             'level': party_lvl_change * party_modif, # It works!
-            'heal': self.healing(pb) * 0.01 / self.num_pokemon, # It works!
+            'heal': self.healing(pb) * 0.005 / self.num_pokemon, # It works!
             #'items': items_change * 0.005, # It works!
             #'dead': died_change * -0.001, # It works!
-            'money': money_change * 0.03, # It works!
+            'money': money_change * 0.003, # It works!
             'explore': expl_mod * expl_change * 0.05, # It works!
             'badge': badges_change * 0.5 # It works!
             # new place reward
@@ -113,8 +113,8 @@ class PokemonAgent:
         else:
             p, x, y = get_x_y(pb)
             #return (p, x, y, self.num_pokemon, get_money(pb), party_lvl(pb), percentage_party_hp(pb), total_items(pb), get_badges(pb))
-            return (p, x, y, party_lvl(pb), get_badges(pb))
-            #return (p, x, y, get_badges(pb))
+            #return (p, x, y, party_lvl(pb), get_badges(pb))
+            return (p, x, y, get_badges(pb))
 
     def choose_action(self, state):
         if np.random.rand() < self.exploration_rate:
@@ -134,7 +134,11 @@ class PokemonAgent:
     def update_q_values(self, state, action, reward, next_state):
         if state not in self.q_values:
             self.q_values[state] = {}
-
+        
+        #print(len(self.q_values))
+        #print(type(self.q_values))
+        #print(self.q_values)
+        
         current_q = self.q_values[state].get(action, 0)
         max_future_q = max(self.q_values.get(next_state, {}).get(a, 0) for a in self.get_actions())
 
@@ -146,16 +150,21 @@ class PokemonAgent:
         with open(file_path, 'rb') as file:
             if file:
                 old = pickle.load(file)
+        #old = [[self.q_values], 0]
+        #print(len(old))
+        #print(old[0][0])
         if len(old)>1:
             if old[1] < total:
-                final = (tuple(self.q_values), total)
+                final = ([self.q_values], total)
                 with open(file_path, 'wb') as file:
                     pickle.dump(final, file)
 
     def load_model(self, file_path):
         with open(file_path, 'rb') as file:
             final = pickle.load(file)
-            self.q_values = final[0]
+            #print(type(final))
+            #print(final[0])
+            self.q_values = final[0][0]
             
     def set_overworld_actions(self):
         self.current_actions = self.overworld_actions
@@ -196,10 +205,10 @@ class PokemonAgent:
                 
                 #self.explored = get_location_from_state(pyb)
                 
-                base_tick_speed = 24
+                base_tick_speed = 30
                 rest = base_tick_speed
                 btns = [1,1]   ## NULA GASI EMULATOR!!!! ZAPAMTI! 
-                timer = 1000
+                timer = 100
                 c = timer
                 while not pyb.tick():
                     
@@ -235,7 +244,6 @@ class PokemonAgent:
                     
                     rest-=1
                     if rest == 0:
-                        print(self.col + f"Ep: {e + 1}, Total: {total_reward:0,.4f}")
                         action = self.choose_action(state)
                         btns = self.current_actions[action]
                         self.step(pyb, btns[0])
@@ -244,7 +252,7 @@ class PokemonAgent:
                         #print(f"{self.get_explored()}")
                         reward = self.get_reward(pyb)
                         self.update_q_values(state, action, reward, next_state)
-                        
+                        print(self. col + f"Episode {e + 1}, Total Reward: {total_reward:0,.4f}, Chosen Action: {action}")
                         #print(type(self.q_values))
                         
                         total_reward += sum(r for _, r in reward.items())
@@ -258,7 +266,7 @@ class PokemonAgent:
                             c = timer
                             self.learning_rate *= self.decay_factor
                         
-                    elif rest == base_tick_speed/2:
+                    elif rest == base_tick_speed/2.5:
                         self.step(pyb, btns[1])
                         ...
                     if goal(pyb):

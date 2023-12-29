@@ -199,7 +199,9 @@ def get_battle_state(pb):
     
     number_of_turns = pb.get_memory_value(0xCCD5)
     per_hp = percentage_party_hp(pb)
-    return (p_p_id, p_p_level, p_p_h, e_p_id, e_p_h, e_p_lvl, per_hp, battle_type, number_of_turns, current_menu)
+    #return (p_p_id, p_p_level, p_p_h, e_p_id, e_p_h, e_p_lvl, per_hp, battle_type, number_of_turns, current_menu)
+    #return (p_p_id, p_p_level, p_p_h, e_p_id, e_p_h, e_p_lvl, battle_type, current_menu)
+    return (p_p_id, p_p_h, e_p_id, e_p_h, battle_type, current_menu)
 
 def percentage_party_hp(pb):
     hps = hp_read(pb)
@@ -211,17 +213,21 @@ def percentage_party_hp(pb):
     return s1/s2
 
 def explore_mod(pb):
-    d = {0: 1.01,
-         12: 1.05,
-         1: 1.1,
-         13: 1.17,
-         50: 1.17,
-         51: 1.2,
-         47: 1.3,
-         13: 1.4,
-         2: 1.6}
+    d = {0: 0.8,   # Palletown
+         12: 1.15,   # Route 1
+         1: 1.25,    # Viridian City
+         13: 1.4,  # Route 3 (we skip 2)
+         50: 1.4,  # That thing between Viridian city and Viridian forest
+         51: 1.65,  # Viridian forest
+         47: 1.7,   # That thing between Viridian forest and Route 4
+         13: 1.8,   # Route 4
+         2: 1.9}    # Pewter city
     
     p, _, _ = get_x_y(pb)
     
-    return d[p] if p in d else 0.8
+    return d[p] if p in d else 0.75
     
+    
+def pokemon_owned(pb):
+    
+    ...
