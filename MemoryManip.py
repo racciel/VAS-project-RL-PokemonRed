@@ -1,5 +1,3 @@
-from pyboy import PyBoy
-
 """
 D163 - # Pokémon In Party
 D164 - Pokémon 1
@@ -199,5 +197,31 @@ def get_battle_state(pb):
     battle_type = get_mode(pb)
     current_menu = int(menu_option(pb))
     
-    return (p_p_id, p_p_level, p_p_h, e_p_id, e_p_h, e_p_lvl, battle_type, current_menu)
-    ...
+    number_of_turns = pb.get_memory_value(0xCCD5)
+    per_hp = percentage_party_hp(pb)
+    return (p_p_id, p_p_level, p_p_h, e_p_id, e_p_h, e_p_lvl, per_hp, battle_type, number_of_turns, current_menu)
+
+def percentage_party_hp(pb):
+    hps = hp_read(pb)
+    s1 = 0
+    s2 = 0
+    for bar in hps:
+        s1+=bar[0]
+        s2+=bar[1]
+    return s1/s2
+
+def explore_mod(pb):
+    d = {0: 1.01,
+         12: 1.05,
+         1: 1.1,
+         13: 1.17,
+         50: 1.17,
+         51: 1.2,
+         47: 1.3,
+         13: 1.4,
+         2: 1.6}
+    
+    p, _, _ = get_x_y(pb)
+    
+    return d[p] if p in d else 0.8
+    

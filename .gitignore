@@ -1,5 +1,5 @@
 *.gb
-sandbox*.py
+-sandbox*.py
 *.ram
 test.py
 wall_of_text.txt
