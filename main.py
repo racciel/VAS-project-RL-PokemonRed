@@ -1,6 +1,23 @@
 from PokemonRedAgent import PokemonAgent
+from MemoryManip import *
 
-base_q_file = None
+from colorama import Fore
+import sys
 
-ash = PokemonAgent(base_q_values=base_q_file)
-ash.train(10)
+if(len(sys.argv)<4):
+    print("Skripta traži 3 parametra; naziv datoteke, broj boje i bool za raw")
+else:
+    args = sys.argv[1:]
+
+    title = str(args[0])
+    col = int(args[1])
+    r = False if args[2] == "False" else True
+    print(r)
+    #file = None
+    file = title
+
+    colors = [Fore.CYAN, Fore.RED, Fore.MAGENTA, Fore.GREEN, Fore.YELLOW, Fore.WHITE]
+
+    ash = PokemonAgent(base_q_values = file, col=colors[col], raw = r)
+    print(ash.learning_rate)
+    ash.train(10)

@@ -1,6 +1,7 @@
 *.gb
--sandbox*.py
+sandbox.py
+sandbox2.py
 *.ram
-test.py
+reset.py
 wall_of_text.txt
 __pycache__/

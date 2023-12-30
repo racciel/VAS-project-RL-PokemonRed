@@ -280,7 +280,8 @@ class PokemonAgent:
                         self.step(pyb, btns[1])
                         ...
                     if goal(pyb):
-                        # Tu ću zapisati najbolju q tablicu za ovu generaciju pa ću je koristiti poslije kao početnu
                         self.save_model("./PokemonRedQValuesTEST.pickle", total_reward)
                         pyb.stop()
+                self.learning_rate *= self.decay_factor
+                print(self.learning_rate)
         self.save_model(generation)
