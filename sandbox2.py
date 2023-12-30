@@ -188,8 +188,8 @@ class PokemonAgent:
         generation = []
         for e in range(n_ep):
             with PyBoy('./PokemonRed.gb') as pyb:
-                
                 file_like_object = open("./PokemonRedSaveState.state", "rb")
+                rend = True
                 
                 pyb.load_state(file_like_object)
                 pyb.set_emulation_speed(0)
@@ -218,9 +218,14 @@ class PokemonAgent:
                     #    pyb.save_state(file_like_object)
                     
                     # Saving the values is now an option
-                    if(pyb.get_input() == [WindowEvent.PRESS_BUTTON_SELECT]):
-                        self.save_model("./PokemonRedQValuesTEST.pickle", total_reward)
-                        pyb.stop()
+                    if(WindowEvent.PRESS_BUTTON_SELECT in pyb.get_input()):
+                        if rend:
+                            rend = False
+                        else:
+                            rend = True
+                        pyb._rendering(rend)
+                        #self.save_model("./PokemonRedQValuesTEST.pickle", total_reward)
+                        #pyb.stop()
                     
                     num_pokemon = num_pokemons(pyb)
                     num_attacks = num_moves(pyb)
@@ -252,7 +257,7 @@ class PokemonAgent:
                         #print(f"{self.get_explored()}")
                         reward = self.get_reward(pyb)
                         self.update_q_values(state, action, reward, next_state)
-                        print(self. col + f"Episode {e + 1}, Total Reward: {total_reward:0,.4f}, Chosen Action: {action}")
+                        print(self. col + f"Episode {e + 1}, Total Reward: {total_reward:0,.4f}")
                         #print(type(self.q_values))
                         
                         total_reward += sum(r for _, r in reward.items())
