@@ -1,7 +1,7 @@
+sandbox*.py
 *.gb
-sandbox.py
-sandbox2.py
 *.ram
 reset.py
 wall_of_text.txt
-__pycache__/
+__pycache__/*
+__pycache__
