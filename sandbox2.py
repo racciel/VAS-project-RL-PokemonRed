@@ -66,17 +66,17 @@ class PokemonAgent:
         self.old_died = get_died(pb)
         self.num_pokemon = num_pokemons(pb)
         
-        
+        healing_modifier = 0.005/self.num_pokemon if died_change > 0 else 0
         
         if party_lvl_change > 1:
-            party_modif = 0.001 * 2/self.num_pokemon
+            party_modif = 0.0005 * 2/self.num_pokemon
         else:
-            party_modif = 0.1 * 15/party_lvl(pb)
+            party_modif = 0.05 * 10/party_lvl(pb)
         expl_mod = explore_mod(pb)
         
         state_scores = {
             'level': party_lvl_change * party_modif, # It works!
-            'heal': self.healing(pb) * 0.005 / self.num_pokemon, # It works!
+            'heal': self.healing(pb) * healing_modifier, # It works!
             #'items': items_change * 0.005, # It works!
             #'dead': died_change * -0.001, # It works!
             'money': money_change * 0.003, # It works!

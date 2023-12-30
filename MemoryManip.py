@@ -184,6 +184,15 @@ def get_battle_state(pb):
     current_hp_low = pb.get_memory_value(add_low)
     p_p_h = int((current_hp_high>>4)+current_hp_low)
     
+    add_high = 0xD8C6
+    add_low = 0xD8C7
+    
+    max_hp_high = pb.get_memory_value(add_high)
+    max_hp_low = pb.get_memory_value(add_low)
+    p_p_max_hp = int((max_hp_high>>4)+max_hp_low)
+    
+    p_per_hp = p_p_h / p_p_max_hp
+    
     e_p_id = pb.get_memory_value(0xCFD8)
     e_p_lvl = pb.get_memory_value(0xCFF3)
     
@@ -194,14 +203,43 @@ def get_battle_state(pb):
     current_hp_low = pb.get_memory_value(add_low)
     e_p_h = int((current_hp_high>>4)+current_hp_low)
     
+    
+    add_high = 0xCFF4
+    add_low = 0xCFF5
+    
+    max_hp_high = pb.get_memory_value(add_high)
+    max_hp_low = pb.get_memory_value(add_low)
+    e_p_max_hp = int((max_hp_high>>4)+max_hp_low)
+    
+    e_per_hp = e_p_h / e_p_max_hp
+    
+    
     battle_type = get_mode(pb)
     current_menu = int(menu_option(pb))
     
     number_of_turns = pb.get_memory_value(0xCCD5)
     per_hp = percentage_party_hp(pb)
+    
+        
+    if p_per_hp >=1/3:
+        p_hp_state = 0
+    elif p_per_hp >=2/3:
+        p_hp_state = 1
+    else:
+        p_hp_state = 2
+        
+        
+    if e_per_hp >=1/3:
+        e_hp_state = 0
+    elif e_per_hp >=2/3:
+        e_hp_state = 1
+    else:
+        e_hp_state = 2
+    
     #return (p_p_id, p_p_level, p_p_h, e_p_id, e_p_h, e_p_lvl, per_hp, battle_type, number_of_turns, current_menu)
     #return (p_p_id, p_p_level, p_p_h, e_p_id, e_p_h, e_p_lvl, battle_type, current_menu)
-    return (p_p_id, p_p_h, e_p_id, e_p_h, battle_type, current_menu)
+    #return (p_p_id, p_p_h, e_p_id, e_p_h, battle_type, current_menu)
+    return (p_hp_state, e_hp_state, battle_type, current_menu)
 
 def percentage_party_hp(pb):
     hps = hp_read(pb)
@@ -213,19 +251,19 @@ def percentage_party_hp(pb):
     return s1/s2
 
 def explore_mod(pb):
-    d = {0: 0.8,   # Palletown
-         12: 1.15,   # Route 1
-         1: 1.25,    # Viridian City
-         13: 1.4,  # Route 3 (we skip 2)
-         50: 1.4,  # That thing between Viridian city and Viridian forest
-         51: 1.65,  # Viridian forest
-         47: 1.7,   # That thing between Viridian forest and Route 4
-         13: 1.8,   # Route 4
-         2: 1.9}    # Pewter city
+    d = {0: 0.5,   # Palletown
+         12: 1.3,   # Route 1
+         1: 1.5,    # Viridian City
+         13: 2,  # Route 3 (we skip 2)
+         50: 2.2,  # That thing between Viridian city and Viridian forest
+         51: 2.5,  # Viridian forest
+         47: 2.6,   # That thing between Viridian forest and Route 4
+         13: 2.8,   # Route 4
+         2: 3}    # Pewter city
     
     p, _, _ = get_x_y(pb)
     
-    return d[p] if p in d else 0.75
+    return d[p] if p in d else 0.05
     
     
 def pokemon_owned(pb):
