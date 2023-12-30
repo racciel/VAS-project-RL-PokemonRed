@@ -96,11 +96,11 @@ def selected_move_power(pb):
     return move_power
 
 def goal(pb):
-    return pb.get_memory_value(0xD755) == 196 # mora biti 196 za pobjedu
-    ...
+    #return pb.get_memory_value(0xD755) == 196 # Brock's badge
+    p, _, _ = get_x_y(pb)
+    return p == 1 # Viridian City
     
 def pos(pb):
-    
     ...
     
 def seen_pokes(pb):
@@ -203,7 +203,6 @@ def get_battle_state(pb):
     current_hp_low = pb.get_memory_value(add_low)
     e_p_h = int((current_hp_high>>4)+current_hp_low)
     
-    
     add_high = 0xCFF4
     add_low = 0xCFF5
     
@@ -213,21 +212,18 @@ def get_battle_state(pb):
     
     e_per_hp = e_p_h / e_p_max_hp
     
-    
     battle_type = get_mode(pb)
     current_menu = int(menu_option(pb))
     
     number_of_turns = pb.get_memory_value(0xCCD5)
     per_hp = percentage_party_hp(pb)
     
-        
     if p_per_hp >=1/3:
         p_hp_state = 0
     elif p_per_hp >=2/3:
         p_hp_state = 1
     else:
         p_hp_state = 2
-        
         
     if e_per_hp >=1/3:
         e_hp_state = 0
@@ -252,17 +248,16 @@ def percentage_party_hp(pb):
 
 def explore_mod(pb):
     d = {0: 0.5,   # Palletown
-         12: 1.3,   # Route 1
-         1: 1.5,    # Viridian City
-         13: 2,  # Route 3 (we skip 2)
-         50: 2.2,  # That thing between Viridian city and Viridian forest
-         51: 2.5,  # Viridian forest
-         47: 2.6,   # That thing between Viridian forest and Route 4
-         13: 2.8,   # Route 4
-         2: 3}    # Pewter city
+         12: 1.6,   # Route 1
+         1: 2,    # Viridian City
+         13: 2.6,  # Route 3 (we skip 2)
+         50: 2.8,  # That thing between Viridian city and Viridian forest
+         51: 3.4,  # Viridian forest
+         47: 3.6,   # That thing between Viridian forest and Route 4
+         13: 4,   # Route 4
+         2: 5}    # Pewter city
     
     p, _, _ = get_x_y(pb)
-    
     return d[p] if p in d else 0.05
     
     

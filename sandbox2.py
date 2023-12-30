@@ -68,15 +68,18 @@ class PokemonAgent:
         
         healing_modifier = 0.005/self.num_pokemon if died_change > 0 else 0
         
-        if party_lvl_change > 1:
-            party_modif = 0.0005 * 2/self.num_pokemon
-        else:
-            party_modif = 0.05 * 10/party_lvl(pb)
         expl_mod = explore_mod(pb)
         
+        if party_lvl_change > 1:
+            party_modif = 0.0002 * 2/self.num_pokemon
+        else:
+            party_modif = 0.005 * 10/party_lvl(pb)
+        
+        party_modif*=expl_mod
+        
         state_scores = {
-            'level': party_lvl_change * party_modif, # It works!
-            'heal': self.healing(pb) * healing_modifier, # It works!
+            #'level': party_lvl_change * party_modif, # It works!
+            #'heal': self.healing(pb) * healing_modifier, # It works!
             #'items': items_change * 0.005, # It works!
             #'dead': died_change * -0.001, # It works!
             'money': money_change * 0.003, # It works!
@@ -189,10 +192,12 @@ class PokemonAgent:
         for e in range(n_ep):
             with PyBoy('./PokemonRed.gb') as pyb:
                 file_like_object = open("./PokemonRedSaveState.state", "rb")
-                rend = True
+                rend = False
                 
                 pyb.load_state(file_like_object)
+                
                 pyb.set_emulation_speed(0)
+                #pyb.set_emulation_speed(15)
                 
                 total_reward = 0
                 state = self.get_state(pyb)
@@ -204,7 +209,7 @@ class PokemonAgent:
                 self.old_explored = []
                 
                 #self.explored = get_location_from_state(pyb)
-                
+                pyb._rendering(rend)
                 base_tick_speed = 30
                 rest = base_tick_speed
                 btns = [1,1]   ## NULA GASI EMULATOR!!!! ZAPAMTI! 
@@ -265,7 +270,7 @@ class PokemonAgent:
                         
                         rest = base_tick_speed
                         
-                        c-=1
+                        #c-=1
                         
                         if c==0:
                             c = timer
