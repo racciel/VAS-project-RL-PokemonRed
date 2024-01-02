@@ -248,7 +248,7 @@ def percentage_party_hp(pb):
 
 def explore_mod(pb):
     d = {0: 0.5,   # Palletown
-         12: 1.6,   # Route 1
+         12: 1.8,   # Route 1
          1: 2,    # Viridian City
          13: 2.6,  # Route 3 (we skip 2)
          50: 2.8,  # That thing between Viridian city and Viridian forest

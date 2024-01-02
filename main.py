@@ -18,6 +18,6 @@ else:
 
     colors = [Fore.CYAN, Fore.RED, Fore.MAGENTA, Fore.GREEN, Fore.YELLOW, Fore.WHITE]
 
-    ash = PokemonAgent(base_q_values = file, col=colors[col], raw = r)
+    ash = PokemonAgent(discount_factor= 0.95, base_q_values = file, col=colors[col], raw = r)
     print(ash.learning_rate)
-    ash.train(10)
+    ash.train(1)

@@ -78,7 +78,7 @@ class PokemonAgent:
         party_modif*=expl_mod
         
         state_scores = {
-            #'level': party_lvl_change * party_modif, # It works!
+            'level': party_lvl_change * party_modif, # It works!
             #'heal': self.healing(pb) * healing_modifier, # It works!
             #'items': items_change * 0.005, # It works!
             #'dead': died_change * -0.001, # It works!
@@ -149,16 +149,17 @@ class PokemonAgent:
                 float(sum(reward[k] for k, _ in reward.items())) + self.discount_factor * max_future_q)
         self.q_values[state][action] = new_q
     
-    def save_model(self, file_path, total):
+    def save_model(self, file_path, score):
         with open(file_path, 'rb') as file:
             if file:
                 old = pickle.load(file)
         #old = [[self.q_values], 0]
-        #print(len(old))
+        print(len(old))
         #print(old[0][0])
+        print(score)
         if len(old)>1:
-            if old[1] < total:
-                final = ([self.q_values], total)
+            if old[1] > score:
+                final = ([self.q_values], score)
                 with open(file_path, 'wb') as file:
                     pickle.dump(final, file)
 
@@ -215,6 +216,9 @@ class PokemonAgent:
                 btns = [1,1]   ## NULA GASI EMULATOR!!!! ZAPAMTI! 
                 timer = 100
                 c = timer
+                
+                n_moves = 0
+                
                 while not pyb.tick():
                     
                     # USED ONCE TO SAVESTATE
@@ -246,7 +250,6 @@ class PokemonAgent:
                     else:
                         self.set_overworld_actions()
                         #print("Moguće akcije u overworldu:", self.get_actions()) 
-                        
                     
                     #print(self.q_values)
                     
@@ -254,6 +257,7 @@ class PokemonAgent:
                     
                     rest-=1
                     if rest == 0:
+                        n_moves += 1
                         action = self.choose_action(state)
                         btns = self.current_actions[action]
                         self.step(pyb, btns[0])
@@ -262,7 +266,7 @@ class PokemonAgent:
                         #print(f"{self.get_explored()}")
                         reward = self.get_reward(pyb)
                         self.update_q_values(state, action, reward, next_state)
-                        print(self. col + f"Episode {e + 1}, Total Reward: {total_reward:0,.4f}")
+                        print(self. col + f"Episode {e + 1}, Total Reward: {total_reward:0,.4f}, Learning rate: {self.learning_rate}")
                         #print(type(self.q_values))
                         
                         total_reward += sum(r for _, r in reward.items())
@@ -271,7 +275,7 @@ class PokemonAgent:
                         rest = base_tick_speed
                         
                         #c-=1
-                        
+                                                
                         if c==0:
                             c = timer
                             self.learning_rate *= self.decay_factor
@@ -280,8 +284,9 @@ class PokemonAgent:
                         self.step(pyb, btns[1])
                         ...
                     if goal(pyb):
-                        self.save_model("./PokemonRedQValuesTEST.pickle", total_reward)
+                        score = n_moves/total_reward
+                        self.save_model("./PokemonRedQValuesTEST.pickle", score = score)
                         pyb.stop()
                 self.learning_rate *= self.decay_factor
-                print(self.learning_rate)
-        self.save_model(generation)
+                #print(self.learning_rate)
+        #self.save_model(generation)
