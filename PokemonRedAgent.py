@@ -3,6 +3,7 @@ from MemoryManip import *
 import pickle
 import numpy as np
 from colorama import Fore
+import psutil
 
 class PokemonAgent:
     def __init__(self, 
@@ -13,12 +14,14 @@ class PokemonAgent:
                  decay_factor = 0.995, 
                  base_q_values = None, 
                  col = Fore.GREEN,
-                 raw = True):
+                 raw = True,
+                 max_steps = 0):
         self.current_state = None
         self.num_pokemon = None
         self.num_attacks = None
         self.col = col
         self.raw = raw
+        self.max_steps = max_steps
         
         self.general_actions = {"MoveUP": [WindowEvent.PRESS_ARROW_UP, WindowEvent.RELEASE_ARROW_UP], 
                                 "MoveDOWN": [WindowEvent.PRESS_ARROW_DOWN, WindowEvent.RELEASE_ARROW_DOWN], 
@@ -37,12 +40,12 @@ class PokemonAgent:
         self.exploration_rate = exploration_rate  # stopa istraživanja
         self.exploration_decay = exploration_decay  # faktor smanjenja istraživanja
         self.decay_factor = decay_factor
-        
+        self.base_q_values = base_q_values
         self.previous_health = None
         
         if base_q_values is not None and self.raw == False:
             self.load_model(base_q_values)
-            self.learning_rate=0.1
+            self.learning_rate=0.01
         else:
             self.q_values = {}
             self.raw = False
@@ -138,10 +141,6 @@ class PokemonAgent:
         if state not in self.q_values:
             self.q_values[state] = {}
         
-        #print(len(self.q_values))
-        #print(type(self.q_values))
-        #print(self.q_values)
-        
         current_q = self.q_values[state].get(action, 0)
         max_future_q = max(self.q_values.get(next_state, {}).get(a, 0) for a in self.get_actions())
 
@@ -150,25 +149,40 @@ class PokemonAgent:
         self.q_values[state][action] = new_q
     
     def save_model(self, file_path, score):
-        with open(file_path, 'rb') as file:
-            if file:
+        try:
+            with open(file_path, 'rb') as file:
                 old = pickle.load(file)
-        #old = [[self.q_values], 0]
-        print(len(old))
-        #print(old[0][0])
-        print(score)
-        if len(old)>1:
-            if old[1] > score:
-                final = ([self.q_values], score)
-                with open(file_path, 'wb') as file:
-                    pickle.dump(final, file)
+            file.close()
+        except FileNotFoundError:
+            old = [{}, 0]
+            with open(file_path, 'wb') as file:
+                pickle.dump(old, file)
+            file.close()
+            return
+
+        if old[1] < score:
+            final = ([self.q_values], score)
+            with open(file_path, 'wb') as file:
+                pickle.dump(final, file)
+            file.close()
 
     def load_model(self, file_path):
-        with open(file_path, 'rb') as file:
-            final = pickle.load(file)
-            #print(type(final))
-            #print(final[0])
-            self.q_values = final[0][0]
+        try:
+            with open(file_path, 'rb') as file:
+                final = pickle.load(file)
+                #print(final[0])
+                if len(final) > 1:
+                    self.q_values = final[0][0]
+                    #print("Tu smo")
+                else:
+                    self.q_values = {}
+            file.close()
+        except FileNotFoundError:
+            self.q_values = {}
+            self.save_model(file_path, 0)
+        except Exception as e:
+            print(f"Error loading model from {file_path}: {e}")
+        #print(f"LOADED: {self.q_values}")
             
     def set_overworld_actions(self):
         self.current_actions = self.overworld_actions
@@ -189,13 +203,17 @@ class PokemonAgent:
         pb.send_input(action)
      
     def train(self, n_ep):
-        generation = []
         for e in range(n_ep):
             with PyBoy('./PokemonRed.gb') as pyb:
-                file_like_object = open("./PokemonRedSaveState.state", "rb")
+                with open("./PokemonRedSaveState.state", "rb") as file_like_object:
+                    pyb.load_state(file_like_object)
                 rend = False
                 
-                pyb.load_state(file_like_object)
+                print(f"Open files before: {psutil.Process().open_files()}")
+                file_like_object.close()
+                print(f"Open files after: {psutil.Process().open_files()}")
+
+
                 
                 pyb.set_emulation_speed(0)
                 #pyb.set_emulation_speed(15)
@@ -283,9 +301,9 @@ class PokemonAgent:
                     elif rest == base_tick_speed/2.5:
                         self.step(pyb, btns[1])
                         ...
-                    if goal(pyb):
-                        score = n_moves/total_reward
-                        self.save_model("./PokemonRedQValuesTEST.pickle", score = score)
+                    if goal(pyb) or (self.max_steps > 0 and n_moves>self.max_steps):
+                        score = total_reward/np.log(n_moves)
+                        self.save_model(self.base_q_values, score = score)
                         pyb.stop()
                 self.learning_rate *= self.decay_factor
                 #print(self.learning_rate)
